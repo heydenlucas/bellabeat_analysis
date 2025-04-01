@@ -1,5 +1,5 @@
 ---
-title: "bellabeat_analysis"
+title: "Capstone Project: Google Data Analytics Professional Certificate"
 author: "Lucas Heyden"
 date: "2025-03-30"
 output: html_document
@@ -9,14 +9,91 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction
+### About the Company
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Bellabeat is a technology company founded by Urška Sršen and Sando Mur, specializing in the manufacture of health-focused products for women. Since its establishment in 2013, Bellabeat has rapidly grown, positioning itself as an innovative brand in the smart device market. The company collects data on activity, sleep, stress, and reproductive health, empowering women to better understand their habits and make healthy decisions. With a strong digital presence, Bellabeat invests in online marketing, including ads on Google, Facebook, Instagram, and YouTube, as well as maintaining an e-commerce channel.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+  
+
+### Products
+
+Bellabeat offers a range of products designed to monitor the health and well-being of users. These include:
+
+- **Bellabeat App**: Provides health data related to activity, sleep, stress, menstrual cycle, and mindfulness habits.
+
+- **Leaf**: A wellness tracker that can be worn as a bracelet, necklace, or clip, connecting to the app to track activity, sleep, and stress.
+
+- **Time**: A wellness watch that combines classic design with smart technology to monitor activity, sleep, and stress.
+
+- **Spring**: A water bottle that tracks daily water intake, ensuring users stay hydrated.
+
+- **Bellabeat Subscription**: A membership program offering personalized guidance on nutrition, activity, sleep, health and beauty, and mindfulness.
+
+  
+
+### Stakeholders
+
+The key stakeholders of Bellabeat include:
+
+- **Urška Sršen**: Co-founder and Creative Director, who believes in the potential of data analysis to drive the company's growth.
+
+- **Sando Mur**: Co-founder and mathematician, a key member of Bellabeat's executive team.
+
+- **Marketing Analysis Team**: A team of data analysts responsible for collecting, analyzing, and reporting data that helps guide Bellabeat's marketing strategy. As a junior analyst, you are part of this team and focused on understanding how consumers use Bellabeat products to provide strategic recommendations.
+
+## Project Deliverables
+
+1. **Clear Summary of the Business Task**: A concise and objective description of the project’s goal, highlighting the objectives and expected outcomes.
+
+2. **Description of All Data Sources Used**: A comprehensive overview of all data sources employed in the analysis, including the origin, nature of the data, and relevance to the business task.
+
+3. **Documentation of Data Cleansing and Manipulation**: A detailed record of all steps taken for data cleaning and manipulation, including techniques used, transformations applied, and justifications for the decisions made.
+
+4. **Summary of the Analysis Conducted**: An overview of the methodologies and analytical approaches employed, highlighting the key steps and techniques used to reach the conclusions.
+
+5. **Supporting Visualizations and Key Findings**: Graphs and visualizations that illustrate the results of the analysis, accompanied by a summary of the most relevant discoveries and insights obtained.
+
+6. **Marketing Recommendations for a Selected Product**: Strategic suggestions based on the analysis, focused on a specific product, aimed at optimizing marketing campaigns and driving sales.
+
+
+## Data analysis process
+
+### Ask
+
+The co-founder and Creative Director of Bellabeat, Urška Sršen, has requested an analysis of smart device usage data in order to gain insights into how consumers use non-Bellabeat smart devices. Based on these insights, it will be necessary to select one Bellabeat product to apply the findings in the presentation.
+
+The key questions that will guide this analysis are:
+
+- **What are some trends in smart device usage?**
+- **How could these trends apply to Bellabeat customers?**
+- **How could these trends help influence Bellabeat's marketing strategy?**
+
+These questions are fundamental to understanding consumer behavior and how Bellabeat can position itself more effectively in the market.
+
+
+### Prepare 
+
+
+
+### Process 
+### Analyze 
+### Share 
+### Act 
+
 
 ```{r cars}
-summary(cars)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(ggrepel)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(here)
+library(skimr)
+library(janitor)
+library(corrplot)
 ```
 
 ## Including Plots

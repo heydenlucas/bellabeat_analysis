@@ -460,9 +460,241 @@ market.</p>
 </div>
 <div id="prepare" class="section level3">
 <h3>Prepare</h3>
+<div id="data-storage" class="section level4">
+<h4>Data storage</h4>
+<p>This dataset was collected via Amazon Mechanical Turk between March
+and May 2016. It contains data from 30 Fitbit users who consented to
+sharing their personal fitness tracker information, including physical
+activity, heart rate, and sleep. The dataset, publicly available on
+Kaggle through Mobius, enables analysis of user habits.</p>
+</div>
+<div id="organization" class="section level4">
+<h4>Organization</h4>
+<p>The dataset consists of 18 CSV files, with 15 in long format and 3 in
+wide format. Each user has a unique ID, and records are organized by day
+and hour. The files were processed in RStudio Cloud.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="5%" />
+<col width="7%" />
+<col width="5%" />
+<col width="6%" />
+<col width="42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File Name</th>
+<th>Type</th>
+<th>Format</th>
+<th>Days</th>
+<th>Users</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>dailyActivity_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Daily activity: steps, distance, intensity, calories</td>
+</tr>
+<tr class="even">
+<td>dailyCalories_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Daily calorie burn</td>
+</tr>
+<tr class="odd">
+<td>dailyIntensities_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Daily intensity levels (minutes and distances)</td>
+</tr>
+<tr class="even">
+<td>dailySteps_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Total daily step count</td>
+</tr>
+<tr class="odd">
+<td>heartrate_seconds_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>14</td>
+<td>Heart rate recorded every 5 seconds</td>
+</tr>
+<tr class="even">
+<td>hourlyCalories_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Hourly calorie burn</td>
+</tr>
+<tr class="odd">
+<td>hourlyIntensities_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Hourly intensity levels and averages</td>
+</tr>
+<tr class="even">
+<td>hourlySteps_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Steps recorded per hour</td>
+</tr>
+<tr class="odd">
+<td>minuteCaloriesNarrow_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Calorie burn per minute (one row per minute)</td>
+</tr>
+<tr class="even">
+<td>minuteCaloriesWide_merged</td>
+<td>CSV</td>
+<td>Wide</td>
+<td>30</td>
+<td>33</td>
+<td>Calorie burn per minute (one column per minute)</td>
+</tr>
+<tr class="odd">
+<td>minuteIntensitiesNarrow_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Intensity per minute (one row per minute)</td>
+</tr>
+<tr class="even">
+<td>minuteIntensitiesWide_merged</td>
+<td>CSV</td>
+<td>Wide</td>
+<td>30</td>
+<td>33</td>
+<td>Intensity per minute (one column per minute)</td>
+</tr>
+<tr class="odd">
+<td>minuteMETsNarrow_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Metabolic equivalent (MET) per minute</td>
+</tr>
+<tr class="even">
+<td>minuteSleep_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>31</td>
+<td>24</td>
+<td>Minute-by-minute sleep records</td>
+</tr>
+<tr class="odd">
+<td>minuteStepsNarrow_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>33</td>
+<td>Step count per minute (one row per minute)</td>
+</tr>
+<tr class="even">
+<td>minuteStepsWide_merged</td>
+<td>CSV</td>
+<td>Wide</td>
+<td>30</td>
+<td>33</td>
+<td>Step count per minute (one column per minute)</td>
+</tr>
+<tr class="odd">
+<td>sleepDay_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>24</td>
+<td>Sleep records: total sleep time and time in bed</td>
+</tr>
+<tr class="even">
+<td>weightLogInfo_merged</td>
+<td>CSV</td>
+<td>Long</td>
+<td>30</td>
+<td>8</td>
+<td>Weight, body fat percentage, BMI, report type</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="credibility" class="section level4">
+<h4>Credibility</h4>
+<p>An evaluation using the <strong>ROCCC</strong> method reveals:<br />
+- <strong>Reliability:</strong> Low, due to a small sample size and
+short collection period.<br />
+- <strong>Originality:</strong> Collected by third parties (MTurk)
+rather than directly by Fitbit.<br />
+- <strong>Comprehensiveness:</strong> Limited, as demographic details
+are missing.<br />
+- <strong>Timeliness:</strong> Outdated (2016), potentially not
+reflecting current trends.<br />
+- <strong>Citation:</strong> Published on Zenodo.org by Furberg et al.,
+providing some academic credibility.</p>
+</div>
+<div id="licensing-privacy" class="section level4">
+<h4>Licensing &amp; Privacy</h4>
+<p>The dataset is in the public domain (CC0), allowing free use. All
+personal data has been anonymized in compliance with GDPR regulations to
+ensure user privacy.</p>
+</div>
+<div id="integrity" class="section level4">
+<h4>Integrity</h4>
+<p>*File integrity was verified using hash validation, ensuring no
+alterations occurred during download.</p>
+</div>
+<div id="limitations" class="section level4">
+<h4>Limitations</h4>
+<p>Variations in unique IDs, differences between automated and manually
+entered data, and lack of standardization across devices may affect
+analysis. However, the insights gained can help Bellabeat enhance its
+products.</p>
+</div>
 </div>
 <div id="process" class="section level3">
 <h3>Process</h3>
+<p>Data integrity and the cleaning process are essential in data
+analysis, ensuring that data is accurate, consistent, and reliable. Data
+cleaning involves identifying and correcting errors or inconsistencies,
+which enhances the quality of insights derived from the data. In this
+discussion, we will explore several critical aspects of data integrity
+and the data cleaning process. The following points will be
+addressed:</p>
+<ul>
+<li>The tools selected for data cleaning and the rationale behind those
+choices.</li>
+<li>Methods employed to ensure the integrity of the data.</li>
+<li>Steps taken to maintain a clean dataset.</li>
+<li>Verification processes to confirm that the data is ready for
+analysis.</li>
+<li>Documentation of the cleaning process for future reference and
+sharing.</li>
+</ul>
+<p>These elements are vital for ensuring that the data used in analysis
+is of high quality, ultimately leading to more accurate and actionable
+insights.</p>
 </div>
 <div id="analyze" class="section level3">
 <h3>Analyze</h3>

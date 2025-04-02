@@ -73,11 +73,73 @@ These questions are fundamental to understanding consumer behavior and how Bella
 
 
 ### Prepare 
+#### Data storage  
+This dataset was collected via Amazon Mechanical Turk between March and May 2016. It contains data from 30 Fitbit users who consented to sharing their personal fitness tracker information, including physical activity, heart rate, and sleep. The dataset, publicly available on Kaggle through Mobius, enables analysis of user habits.  
+
+#### Organization  
+The dataset consists of 18 CSV files, with 15 in long format and 3 in wide format. Each user has a unique ID, and records are organized by day and hour. The files were processed in RStudio Cloud.  
+
+
+| File Name                           | Type | Format | Days | Users | Description |
+|--------------------------------------|------|--------|------|-------|------------------------------------------------|
+| dailyActivity_merged                 | CSV  | Long   | 30   | 33    | Daily activity: steps, distance, intensity, calories |
+| dailyCalories_merged                 | CSV  | Long   | 30   | 33    | Daily calorie burn |
+| dailyIntensities_merged              | CSV  | Long   | 30   | 33    | Daily intensity levels (minutes and distances) |
+| dailySteps_merged                    | CSV  | Long   | 30   | 33    | Total daily step count |
+| heartrate_seconds_merged             | CSV  | Long   | 30   | 14    | Heart rate recorded every 5 seconds |
+| hourlyCalories_merged                 | CSV  | Long   | 30   | 33    | Hourly calorie burn |
+| hourlyIntensities_merged              | CSV  | Long   | 30   | 33    | Hourly intensity levels and averages |
+| hourlySteps_merged                    | CSV  | Long   | 30   | 33    | Steps recorded per hour |
+| minuteCaloriesNarrow_merged           | CSV  | Long   | 30   | 33    | Calorie burn per minute (one row per minute) |
+| minuteCaloriesWide_merged             | CSV  | Wide   | 30   | 33    | Calorie burn per minute (one column per minute) |
+| minuteIntensitiesNarrow_merged        | CSV  | Long   | 30   | 33    | Intensity per minute (one row per minute) |
+| minuteIntensitiesWide_merged          | CSV  | Wide   | 30   | 33    | Intensity per minute (one column per minute) |
+| minuteMETsNarrow_merged               | CSV  | Long   | 30   | 33    | Metabolic equivalent (MET) per minute |
+| minuteSleep_merged                     | CSV  | Long   | 31   | 24    | Minute-by-minute sleep records |
+| minuteStepsNarrow_merged              | CSV  | Long   | 30   | 33    | Step count per minute (one row per minute) |
+| minuteStepsWide_merged                | CSV  | Wide   | 30   | 33    | Step count per minute (one column per minute) |
+| sleepDay_merged                        | CSV  | Long   | 30   | 24    | Sleep records: total sleep time and time in bed |
+| weightLogInfo_merged                   | CSV  | Long   | 30   | 8     | Weight, body fat percentage, BMI, report type |
+
+
+#### Credibility  
+An evaluation using the **ROCCC** method reveals:  
+- **Reliability:** Low, due to a small sample size and short collection period.  
+- **Originality:** Collected by third parties (MTurk) rather than directly by Fitbit.  
+- **Comprehensiveness:** Limited, as demographic details are missing.  
+- **Timeliness:** Outdated (2016), potentially not reflecting current trends.  
+- **Citation:** Published on Zenodo.org by Furberg et al., providing some academic credibility.  
+
+#### Licensing & Privacy  
+The dataset is in the public domain (CC0), allowing free use. All personal data has been anonymized in compliance with GDPR regulations to ensure user privacy.  
+
+#### Integrity  
+*File integrity was verified using hash validation, ensuring no alterations occurred during download.  
+
+#### Limitations  
+Variations in unique IDs, differences between automated and manually entered data, and lack of standardization across devices may affect analysis. However, the insights gained can help Bellabeat enhance its products.  
 
 
 
 ### Process 
+Data integrity and the cleaning process are essential in data analysis, ensuring that data is accurate, consistent, and reliable. Data cleaning involves identifying and correcting errors or inconsistencies, which enhances the quality of insights derived from the data. In this discussion, we will explore several critical aspects of data integrity and the data cleaning process. The following points will be addressed:
+
+- The tools selected for data cleaning and the rationale behind those choices.
+- Methods employed to ensure the integrity of the data.
+- Steps taken to maintain a clean dataset.
+- Verification processes to confirm that the data is ready for analysis.
+- Documentation of the cleaning process for future reference and sharing.
+
+These elements are vital for ensuring that the data used in analysis is of high quality, ultimately leading to more accurate and actionable insights.
+
+#### Tool used
+For the analysis, I will be using R, a powerful and efficient tool for data processing, cleaning, and visualization. R is widely recognized for its extensive libraries and packages, such as `dplyr` for data manipulation and `ggplot2` for creating stunning visualizations. Its ability to handle large datasets and perform complex statistical analyses makes it one of the most popular programming languages in the data science community today. Additionally, R's open-source nature allows for continuous improvement and a vibrant community that contributes to its vast ecosystem of resources. This makes R an ideal choice for ensuring high-quality data analysis.
+
+
+
 ### Analyze 
+
+
 ### Share 
 ### Act 
 

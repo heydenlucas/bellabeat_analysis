@@ -135,15 +135,7 @@ These elements are vital for ensuring that the data used in analysis is of high 
 #### Tool used
 For the analysis, I will be using R, a powerful and efficient tool for data processing, cleaning, and visualization. R is widely recognized for its extensive libraries and packages, such as `dplyr` for data manipulation and `ggplot2` for creating stunning visualizations. Its ability to handle large datasets and perform complex statistical analyses makes it one of the most popular programming languages in the data science community today. Additionally, R's open-source nature allows for continuous improvement and a vibrant community that contributes to its vast ecosystem of resources. This makes R an ideal choice for ensuring high-quality data analysis.
 
-
-
-### Analyze 
-
-
-### Share 
-### Act 
-
-
+#### Loading libraries and importing files
 ```{r cars}
 library(tidyverse)
 library(lubridate)
@@ -156,14 +148,437 @@ library(here)
 library(skimr)
 library(janitor)
 library(corrplot)
+library(ggcorrplot)
+library(cluster)
+library(factoextra)
+
+df_daily_activity <- read_csv("/cloud/project/raw_data_bellabeat/dailyActivity_merged.csv")
+df_daily_calories <- read_csv("/cloud/project/raw_data_bellabeat/dailyCalories_merged.csv")
+df_daily_intensities <- read_csv("/cloud/project/raw_data_bellabeat/dailyIntensities_merged.csv")
+df_daily_steps <- read_csv("/cloud/project/raw_data_bellabeat/dailySteps_merged.csv")
+df_daily_sleep <- read_csv("/cloud/project/raw_data_bellabeat/sleepDay_merged.csv")
+
+
+
+
+
 ```
+
+#### Exploratory analisys
+```{r}
+str(df_daily_activity)
+
+str(df_daily_sleep)
+
+str(df_daily_intensities)
+
+str(df_daily_calories)
+
+str(df_daily_steps)
+```
+
+#### Data preparation
+
+***
+**Daily Activity**
+
+```{r}
+df_daily_activity$ActivityDate <- as.Date(df_daily_activity$ActivityDate, format = "%m/%d/%Y")
+df_daily_activity$Id <- as.character(df_daily_activity$Id)
+df_daily_activity <- df_daily_activity %>% clean_names()
+```
+
+Each Id corresponds to a user, so the Id is not unique in the dataframe, and it is not possible to use it as a primary key for linking or checking for duplication.
+```{r}
+n_distinct(df_daily_activity$id) == nrow(df_daily_activity)
+
+n_distinct(df_daily_activity$id)
+nrow(df_daily_activity)
+```
+
+As it was verified that the Id is not unique, a uniqueness and non-null validation will be performed based on the column values.
+
+```{r}
+dp_daily_activity <- sum(duplicated(df_daily_activity)) * 100 / nrow(df_daily_activity)
+na_daily_activity <- sum(is.na(df_daily_activity)) * 100 / nrow(df_daily_activity)
+
+dp_daily_activity
+na_daily_activity
+```
+
+Since there are no duplicate rows in the dataset, there is no need to remove any. So, next, the 'Id' column will be renamed to fk_daily_activity so that it can be used as a foreign key if needed, and a new Id column will be generated which is the concatenation of fk_daily_activity and activity_date
+
+```{r}
+df_daily_activity <- df_daily_activity %>%
+  rename(fk_daily_activity = id)
+
+df_daily_activity <- df_daily_activity %>%
+  mutate(id = paste(fk_daily_activity, activity_date, sep = "_"))
+
+df_daily_activity <- df_daily_activity %>%
+  relocate(id, .before = fk_daily_activity)
+
+n_distinct(df_daily_activity$id) == nrow(df_daily_activity)
+
+n_distinct(df_daily_activity$id)
+nrow(df_daily_activity)
+```
+
+Creation of the difference column between the total distance and the distance tracked by the application.
+
+```{r}
+df_daily_activity <- df_daily_activity %>%
+  mutate(delta_distances = total_distance - tracker_distance)
+```
+
+Assessment of the amount of data by which the actual distance diverges from the tracked distance.
+```{r}
+df_daily_activity %>%
+  mutate(delta_group = case_when(
+    delta_distances == 0 ~ "0",
+    delta_distances > 0 & delta_distances <= 0.5 ~ "0–0.5",
+    delta_distances > 0.5 & delta_distances <= 1 ~ "0.5–1",
+    delta_distances > 1 & delta_distances <= 1.5 ~ "1–1.5",
+    delta_distances > 1.5 ~ ">1.5"
+  )) %>%
+  group_by(delta_group) %>%
+  summarise(count = n()) %>%
+  mutate(percent = round(count / sum(count) * 100, 2)) -> delta_summary
+  
+delta_summary
+```
+
+Since the difference between the actual distance and the distance recorded by the device is greater than zero in less than 2% of the analyzed sample, we will proceed with the analysis excluding these cases. This ensures that the evaluated data reflects more accurate measurements.
+
+```{r}
+df_daily_activity <- df_daily_activity %>% filter(delta_distances == 0)
+```
+
+Adding weekday number and weekday name.
+```{r}
+df_daily_activity <- df_daily_activity %>%
+  mutate(
+    week_day_name = weekdays(activity_date),
+    # 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    week_day_number = as.integer(format(activity_date, "%w")) 
+  )
+```
+
+
+
+At the end of processing this was the final dataframe.
+```{r}
+str(df_daily_activity)
+```
+
+Based on this dataframe, df_users_activity will be created, which will show the percentage of days in which each user was active. Considering the OMS recommendation of at least 7,000 steps per day, this will be the criterion adopted to define whether a user had an active day or not.
+
+```{r}
+user_active_dates <- df_daily_activity %>%
+  filter(total_steps > 7000) %>%
+  group_by(fk_daily_activity) %>%
+  summarise(active_days = n(), .groups = "drop")
+
+
+user_all_dates <- df_daily_activity %>%
+  group_by(fk_daily_activity) %>%
+  summarise(total_days = n(), .groups = "drop")
+
+df_user_activity <- user_all_dates %>%
+  left_join(user_active_dates, by = "fk_daily_activity") %>%
+  mutate(
+    id_user = fk_daily_activity,
+    active_days = coalesce(active_days, 0),
+    user_activity_in_period = (active_days * 100) / total_days
+  ) %>%
+  select(id_user, user_activity_in_period) %>%
+  arrange(desc(user_activity_in_period)) 
+
+
+
+df_user_activity
+```
+
+
+***
+**Daily Sleep**
+
+Validation of non-unique and null values.
+```{r}
+dp_daily_sleep <- sum(duplicated(df_daily_sleep)) * 100 / nrow(df_daily_sleep)
+na_daily_sleep <- sum(is.na(df_daily_sleep)) * 100 / nrow(df_daily_sleep)
+
+dp_daily_sleep
+na_daily_sleep
+```
+
+Since df_daily_sleep has duplicate data and there is little of it, only non-duplicated data will be considered in the analysis.
+```{r}
+df_daily_sleep <- df_daily_sleep %>% 
+  distinct()
+```
+
+Separating date and time.
+```{r}
+df_daily_sleep$Id <- as.character(df_daily_sleep$Id)
+
+df_daily_sleep <- df_daily_sleep %>%
+  separate(SleepDay, into = c("sleep_date", "sleep_hour"), sep = " ")
+
+df_daily_sleep$sleep_date <- as.Date(df_daily_sleep$sleep_date, format = "%m/%d/%Y")
+
+
+df_daily_sleep <- df_daily_sleep %>% clean_names()
+
+
+str(df_daily_sleep)
+```
+
+Creating a new Id, as was done in df_daily_activity.
+```{r}
+df_daily_sleep <- df_daily_sleep %>%
+  rename(fk_daily_sleep = id)
+
+df_daily_sleep <- df_daily_sleep %>%
+  mutate(id = paste(fk_daily_sleep, sleep_date, sep = "_"))
+
+df_daily_sleep <- df_daily_sleep %>%
+  relocate(id, .before = fk_daily_sleep)
+
+n_distinct(df_daily_sleep$id) == nrow(df_daily_sleep)
+
+n_distinct(df_daily_sleep$id)
+nrow(df_daily_sleep)
+```
+
+This is the result after processing df_daily_sleep.
+```{r}
+str(df_daily_sleep)
+```
+
+Incorporating average sleep into the dataframe with consolidated user data.
+```{r}
+df_avg_sleep <- df_daily_sleep %>%
+  group_by(fk_daily_sleep) %>%
+  summarise(avg_minutes_asleep = mean(total_minutes_asleep, na.rm = TRUE), .groups = "drop") %>%
+  rename(id_user = fk_daily_sleep)
+
+
+
+df_user_activity <- df_user_activity %>%
+  left_join(df_avg_sleep, by = c("id_user" = "id_user")) %>%
+  select(id_user, user_activity_in_period, avg_minutes_asleep)
+
+df_user_activity
+```
+
+
+***
+**Daily Calories**
+
+Validation of non-unique and null values.
+```{r}
+dp_daily_calories <- sum(duplicated(df_daily_calories)) * 100 / nrow(df_daily_calories)
+na_df_daily_calories <- sum(is.na(df_daily_calories)) * 100 / nrow(df_daily_calories)
+
+dp_daily_calories
+na_df_daily_calories
+
+str(df_daily_calories)
+```
+
+Processing the dataframe data so that it is standardized.
+
+```{r}
+df_daily_calories$ActivityDate <- as.Date(df_daily_calories$ActivityDay, format = "%m/%d/%Y")
+df_daily_calories$Id <- as.character(df_daily_calories$Id)
+df_daily_calories <- df_daily_calories %>% 
+  clean_names() %>%
+  select(id, activity_date, calories) %>%
+  rename(id_user = id) %>%
+  mutate(id = paste(id_user, activity_date, sep = "_")) %>%
+  relocate(id, .before = id_user)
+df_daily_calories
+```
+
+Aggregating average calories burned by users in df_user_activity
+```{r}
+df_avg_user_calories <- df_daily_calories %>%
+  group_by(id_user) %>%
+  summarise(avg_calories = mean(calories, na.rm = TRUE))
+
+df_user_activity <- df_user_activity %>%
+  left_join(df_avg_user_calories, by = c("id_user" = "id_user")) %>%
+  select(id_user, user_activity_in_period, avg_minutes_asleep, avg_calories)
+
+str(df_user_activity)
+```
+
+
+***
+**Daily Intensities**
+Validation of non-unique and null values.
+```{r}
+dp_daily_intensities <- sum(duplicated(df_daily_intensities)) * 100 / nrow(df_daily_intensities)
+na_daily_intensities <- sum(is.na(df_daily_intensities)) * 100 / nrow(df_daily_intensities)
+
+dp_daily_intensities
+na_daily_intensities
+
+str(df_daily_intensities)
+```
+
+Processing the dataframe data so that it is standardized.
+```{r}
+df_daily_intensities$Id <- as.character(df_daily_intensities$Id)
+df_daily_intensities <- df_daily_intensities %>% 
+  clean_names() %>%
+  rename(id_user = id) %>%
+  rename(intensities_date = activity_day) %>%
+  mutate(id = paste(id_user, intensities_date, sep = "_")) %>%
+  relocate(id, .before = id_user)
+str(df_daily_intensities)
+```
+
+
+Aggregating average calories burned by users in df_user_activity
+```{r}
+df_avg_user_intensities <- df_daily_intensities %>%
+  group_by(id_user) %>%
+  summarise(
+    avg_lightly_active_minutes = mean(lightly_active_minutes, na.rm = TRUE),
+    avg_fairly_active_minutes = mean(fairly_active_minutes, na.rm = TRUE),
+    avg_very_active_minutes = mean(very_active_minutes, na.rm = TRUE),
+    avg_sedentary_active_distance = mean(sedentary_active_distance, na.rm = TRUE),
+    avg_light_active_distance = mean(light_active_distance, na.rm = TRUE),
+    avg_moderately_active_distance = mean(moderately_active_distance, na.rm = TRUE),
+    avg_very_active_distance = mean(very_active_distance, na.rm = TRUE)
+  )
+
+df_user_activity <- df_user_activity %>%
+  left_join(df_avg_user_intensities, by = "id_user") %>%
+  select(
+    id_user,
+    user_activity_in_period,
+    avg_minutes_asleep,
+    avg_calories,
+    avg_lightly_active_minutes,
+    avg_fairly_active_minutes,
+    avg_very_active_minutes,
+    avg_sedentary_active_distance,
+    avg_light_active_distance,
+    avg_moderately_active_distance,
+    avg_very_active_distance
+  )
+
+str(df_user_activity)
+```
+
+***
+**Daily Steps**
+
+Validation of non-unique and null values.
+```{r}
+dp_daily_steps <- sum(duplicated(df_daily_steps)) * 100 / nrow(df_daily_steps)
+na_daily_steps <- sum(is.na(df_daily_steps)) * 100 / nrow(df_daily_steps)
+
+dp_daily_steps
+na_daily_steps
+
+str(df_daily_steps)
+```
+
+Processing the dataframe data so that it is standardized.
+```{r}
+df_daily_steps$Id <- as.character(df_daily_steps$Id)
+df_daily_steps <- df_daily_steps %>% 
+  clean_names() %>%
+  rename(id_user = id) %>%
+  rename(steps_date = activity_day) %>%
+  mutate(id = paste(id_user, steps_date, sep = "_")) %>%
+  relocate(id, .before = id_user)
+
+str(df_daily_steps)
+```
+
+
+Aggregating average calories burned by users in df_user_activity
+```{r}
+df_avg_steps <- df_daily_steps %>%
+  group_by(id_user) %>%
+  summarise(avg_steps = mean(step_total, na.rm = TRUE))
+
+df_user_activity <- df_user_activity %>%
+  left_join(df_avg_steps, by = "id_user") %>%
+  select(
+    id_user,
+    user_activity_in_period,
+    avg_minutes_asleep,
+    avg_calories,
+    avg_lightly_active_minutes,
+    avg_fairly_active_minutes,
+    avg_very_active_minutes,
+    avg_sedentary_active_distance,
+    avg_light_active_distance,
+    avg_moderately_active_distance,
+    avg_very_active_distance,
+    avg_steps
+  )
+
+str(df_user_activity)
+```
+
+Correlação entre minutos e calorias:
+```{r}
+# Filtering data to remove NAs
+df_corr <- df_user_activity %>%
+  select(avg_steps, avg_calories) %>%
+  filter(!is.na(avg_steps), !is.na(avg_calories))
+
+# Pearson correlation calculation
+correlation <- cor(df_corr$avg_steps, df_corr$avg_calories, method = "pearson")
+print(paste("Pearson correlation between average steps and average calories:", round(correlation, 3)))
+
+# Scatter plot with regression line
+ggplot(df_corr, aes(x = avg_steps, y = avg_calories)) +
+  geom_point(color = "#0073C2FF", size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkred", linetype = "dashed") +
+  labs(
+    title = "Correlation between Average Daily Steps and Calories Burned",
+    x = "Average Daily Steps",
+    y = "Average Daily Calories Burned"
+  ) +
+  theme_minimal()
+```
+
+Calorias gastas por dia da semana:
+```{r}
+# Optional: Order weekdays
+df_daily_activity$week_day_name <- factor(
+  df_daily_activity$week_day_name,
+  levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+)
+
+# Plot: Calories burned by weekday
+ggplot(df_daily_activity, aes(x = week_day_name, y = calories)) +
+  geom_boxplot(fill = "#00BFC4", color = "black", alpha = 0.7) +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "red") +
+  labs(
+    title = "Calories Burned by Day of the Week",
+    x = "Day of the Week",
+    y = "Calories Burned"
+  ) +
+  theme_minimal()
+```
+
+### Analyze 
+
+
+### Share 
+### Act 
+
+
 
 ## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

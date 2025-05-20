@@ -157,12 +157,21 @@ df_daily_calories <- read_csv("/cloud/project/raw_data_bellabeat/dailyCalories_m
 df_daily_intensities <- read_csv("/cloud/project/raw_data_bellabeat/dailyIntensities_merged.csv")
 df_daily_steps <- read_csv("/cloud/project/raw_data_bellabeat/dailySteps_merged.csv")
 df_daily_sleep <- read_csv("/cloud/project/raw_data_bellabeat/sleepDay_merged.csv")
+df_hourly_calories <- read_csv("/cloud/project/raw_data_bellabeat/hourlyCalories_merged.csv")
 
 
 
 
 
 ```
+
+df_daily_activity - OK
+df_daily_calories - 
+df_daily_intensities <- read_csv("/cloud/project/raw_data_bellabeat/dailyIntensities_merged.csv")
+df_daily_steps <- read_csv("/cloud/project/raw_data_bellabeat/dailySteps_merged.csv")
+df_daily_sleep <- read_csv("/cloud/project/raw_data_bellabeat/sleepDay_merged.csv")
+df_hourly_calories - OK
+
 
 #### Exploratory analisys
 ```{r}
@@ -175,6 +184,8 @@ str(df_daily_intensities)
 str(df_daily_calories)
 
 str(df_daily_steps)
+
+str(df_hourly_calories)
 ```
 
 #### Data preparation
@@ -254,6 +265,7 @@ Since the difference between the actual distance and the distance recorded by th
 df_daily_activity <- df_daily_activity %>% filter(delta_distances == 0)
 ```
 
+
 Adding weekday number and weekday name.
 ```{r}
 df_daily_activity <- df_daily_activity %>%
@@ -298,6 +310,47 @@ df_user_activity <- user_all_dates %>%
 
 df_user_activity
 ```
+
+Performing processing to plot the activity graph by time of day.
+
+```{r}
+# Create a weekday column
+weekday_levels <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+df_daily_activity <- df_daily_activity %>%
+  mutate(
+    # Convert the weekday to a factor with the correct order
+    weekday = factor(weekdays(activity_date), levels = weekday_levels)
+  )
+
+# Calculate the average of active minutes by activity type and weekday, then reshape to long format
+avg_active_minutes_long <- df_daily_activity %>%
+  group_by(weekday) %>%
+  summarise(
+    Lightly_Active = mean(lightly_active_minutes, na.rm = TRUE),
+    Fairly_Active = mean(fairly_active_minutes, na.rm = TRUE),
+    Very_Active = mean(very_active_minutes, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  # Convert wide to long format for plotting
+  pivot_longer(
+    cols = c(Lightly_Active, Fairly_Active, Very_Active),
+    names_to = "activity_type",
+    values_to = "avg_minutes"
+  ) %>%
+  # Set factor levels and labels for activity_type
+  mutate(
+    activity_type = factor(activity_type, levels = c("Lightly_Active", "Fairly_Active", "Very_Active"),
+                          labels = c("Lightly Active", "Fairly Active", "Very Active"))
+  ) %>%
+  # Remove rows with NA weekday (if any)
+  filter(!is.na(weekday))
+
+```
+
+
+
+
+
 
 
 ***
@@ -528,50 +581,184 @@ df_user_activity <- df_user_activity %>%
 str(df_user_activity)
 ```
 
-Correlação entre minutos e calorias:
+***
+**Hourly Calories**
+Validation of non-unique and null values
 ```{r}
-# Filtering data to remove NAs
-df_corr <- df_user_activity %>%
-  select(avg_steps, avg_calories) %>%
-  filter(!is.na(avg_steps), !is.na(avg_calories))
+# Calculate the percentage of duplicated and missing values
+dp_hourly_calories <- sum(duplicated(df_hourly_calories)) * 100 / nrow(df_hourly_calories)
+na_hourly_calories <- sum(is.na(df_hourly_calories)) * 100 / nrow(df_hourly_calories)
 
-# Pearson correlation calculation
-correlation <- cor(df_corr$avg_steps, df_corr$avg_calories, method = "pearson")
-print(paste("Pearson correlation between average steps and average calories:", round(correlation, 3)))
+dp_hourly_calories
+na_hourly_calories
 
-# Scatter plot with regression line
-ggplot(df_corr, aes(x = avg_steps, y = avg_calories)) +
-  geom_point(color = "#0073C2FF", size = 3, alpha = 0.7) +
-  geom_smooth(method = "lm", se = FALSE, color = "darkred", linetype = "dashed") +
-  labs(
-    title = "Correlation between Average Daily Steps and Calories Burned",
-    x = "Average Daily Steps",
-    y = "Average Daily Calories Burned"
-  ) +
-  theme_minimal()
+str(df_hourly_calories)
 ```
 
-Calorias gastas por dia da semana:
+Processing the dataframe to standardize columns
 ```{r}
-# Optional: Order weekdays
-df_daily_activity$week_day_name <- factor(
-  df_daily_activity$week_day_name,
-  levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+df_hourly_calories$activity_datetime <- as.POSIXct(
+  df_hourly_calories$ActivityHour,
+  format = "%m/%d/%Y %I:%M:%S %p"
 )
 
-# Plot: Calories burned by weekday
-ggplot(df_daily_activity, aes(x = week_day_name, y = calories)) +
-  geom_boxplot(fill = "#00BFC4", color = "black", alpha = 0.7) +
-  stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "red") +
-  labs(
-    title = "Calories Burned by Day of the Week",
-    x = "Day of the Week",
-    y = "Calories Burned"
-  ) +
-  theme_minimal()
+df_hourly_calories$hour <- hour(df_hourly_calories$activity_datetime)
+
+df_hourly_calories <- df_hourly_calories %>%
+  clean_names() %>%
+  select(id, calories, activity_datetime, hour) %>%
+  rename(id_user = id) %>%
+  mutate(id = paste(id_user, activity_datetime, sep = "_")) %>%
+  relocate(id, .before = id_user) %>%
+  mutate(activity_date = format(activity_datetime, "%d/%m/%Y"))
+
+df_hourly_calories <- df_hourly_calories %>%
+  arrange(desc(hour))
+head(df_hourly_calories,100)
+```
+
+Performing processing to plot the graph of active users by time of day based on calorie expenditure.
+
+```{r}
+# Create a column with date only (remove time)
+df_hourly_calories <- df_hourly_calories %>%
+  mutate(activity_date = as.Date(activity_datetime))
+
+# Classify each record as Active (>200) or Sedentary (<=200)
+df_hourly_calories <- df_hourly_calories %>%
+  mutate(activity_segment = ifelse(calories > 200, "Active", "Sedentary"))
+
+# For each user and hour, define the status for that hour (prioritize 'Active')
+user_hour_status <- df_hourly_calories %>%
+  group_by(id_user, hour) %>%
+  summarise(
+    is_active = any(activity_segment == "Active"),
+    .groups = "drop"
+  ) %>%
+  mutate(activity_segment = ifelse(is_active, "Active", "Sedentary"))
+
+# Count the number of users per hour and activity status
+users_by_hour_status <- user_hour_status %>%
+  group_by(hour, activity_segment) %>%
+  summarise(user_count = n(), .groups = "drop")
+
+# Ensure factor order for activity_segment
+users_by_hour_status$activity_segment <- factor(users_by_hour_status$activity_segment,
+                                                levels = c("Sedentary", "Active"))
 ```
 
 ### Analyze 
+
+**Distribution of User Activity Levels.**
+
+To begin the analysis, we can see that we are working with a good sample of the population, since we have users ranging from not at all active to fully active users, and there are also several intermediate users, which favors an unbiased analysis.
+```{r}
+ggplot(df_user_activity, aes(x = user_activity_in_period)) +
+  geom_histogram(binwidth = 10, fill = "#00BFC4", color = "black", alpha = 0.7) +
+  labs(title = "Distribuição do Nível de Atividade dos Usuários (%)",
+       x = "% de Dias Ativos",
+       y = "Quantidade de Usuários") +
+  theme_minimal()
+```
+
+
+
+**Analysis of user activity by day of the week.**
+
+```{r}
+ggplot(avg_active_minutes_long, aes(x = weekday, y = avg_minutes, fill = activity_type)) +
+  geom_col(position = "dodge", color = "black", alpha = 0.9) +
+  labs(
+    title = "Average Active Minutes by Day of the Week and Activity Type",
+    x = "Day of the Week",
+    y = "Average Active Minutes",
+    fill = "Activity Type"
+  ) +
+  theme_minimal()
+```
+
+Insights:
+
+A maioria dos usuários de dispositivos inteligentes é “Lightly Active” em todos os dias da semana.
+
+Poucos minutos são dedicados a atividades moderadas ou intensas.
+
+Estratégias de produto e marketing devem focar em apoiar e estimular a rotina ativa do dia a dia, não só o desempenho esportivo.
+
+
+
+
+
+**Analysis of active users by time of day based on calorie expenditure.**
+
+```{r}
+ggplot(users_by_hour_status, aes(x = hour, y = user_count, fill = activity_segment)) +
+  geom_col(color = "black", alpha = 0.85) +
+  scale_fill_manual(values = c("Sedentary" = "#6baed6", "Active" = "#fd8d3c")) +
+  scale_x_continuous(breaks = 0:23) +
+  labs(
+    title = "Active vs Sedentary Users by Hour of the Day",
+    x = "Hour of the Day",
+    y = "Number of Users",
+    fill = "Status"
+  ) +
+  theme_minimal()
+
+```
+```{r}
+library(tidyverse)
+
+# Calculate the proportion of each active distance type relative to total_distance
+df_dist_composition <- df_daily_activity %>%
+  mutate(
+    prop_light = light_active_distance / total_distance,
+    prop_moderate = moderately_active_distance / total_distance,
+    prop_very_active = very_active_distance / total_distance
+  )
+
+# Calculate correlations between total_distance and each active distance type
+cor(df_daily_activity$total_distance, df_daily_activity$light_active_distance, use = "complete.obs")
+cor(df_daily_activity$total_distance, df_daily_activity$moderately_active_distance, use = "complete.obs")
+cor(df_daily_activity$total_distance, df_daily_activity$very_active_distance, use = "complete.obs")
+
+# Prepare data in long format for plotting daily composition
+df_dist_long <- df_dist_composition %>%
+  select(activity_date, total_distance, light_active_distance, moderately_active_distance, very_active_distance) %>%
+  pivot_longer(
+    cols = c(light_active_distance, moderately_active_distance, very_active_distance),
+    names_to = "distance_type",
+    values_to = "distance"
+  )
+
+
+
+
+
+# Stacked bar plot per day - shows composition of distances by activity type
+ggplot(df_dist_long, aes(x = activity_date, y = distance, fill = distance_type)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Distance Composition by Activity Type",
+    x = "Date",
+    y = "Distance (km)",
+    fill = "Activity Type"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "light_active_distance" = "#a1d99b",
+      "moderately_active_distance" = "#fd8d3c",
+      "very_active_distance" = "#e31a1c"
+    ),
+    labels = c(
+      "light_active_distance" = "Light",
+      "moderately_active_distance" = "Moderate",
+      "very_active_distance" = "Very Active"
+    )
+  ) +
+  theme_minimal()
+
+
+```
 
 
 ### Share 

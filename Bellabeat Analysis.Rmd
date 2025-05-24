@@ -349,6 +349,30 @@ avg_active_minutes_long <- df_daily_activity %>%
 
 
 
+Processing data to calculate correlations between total_distance and each active distance type.
+```{r}
+# Calculate the proportion of each active distance type relative to total_distance
+df_dist_composition <- df_daily_activity %>%
+  mutate(
+    prop_light = light_active_distance / total_distance,
+    prop_moderate = moderately_active_distance / total_distance,
+    prop_very_active = very_active_distance / total_distance
+  )
+
+# Calculate correlations between total_distance and each active distance type
+cor(df_daily_activity$total_distance, df_daily_activity$light_active_distance, use = "complete.obs")
+cor(df_daily_activity$total_distance, df_daily_activity$moderately_active_distance, use = "complete.obs")
+cor(df_daily_activity$total_distance, df_daily_activity$very_active_distance, use = "complete.obs")
+
+# Prepare data in long format for plotting daily composition
+df_dist_long <- df_dist_composition %>%
+  select(activity_date, total_distance, light_active_distance, moderately_active_distance, very_active_distance) %>%
+  pivot_longer(
+    cols = c(light_active_distance, moderately_active_distance, very_active_distance),
+    names_to = "distance_type",
+    values_to = "distance"
+  )
+```
 
 
 
@@ -454,6 +478,33 @@ df_daily_calories <- df_daily_calories %>%
 df_daily_calories
 ```
 
+Measuring the sleep efficiency.
+```{r}
+# 1. Create a metric for sleep inefficiency (time in bed but not asleep)
+df_sleep_efficiency <- df_daily_sleep %>%
+  mutate(
+    sleep_gap = total_time_in_bed - total_minutes_asleep  # minutes awake while in bed
+  ) %>%
+  rename(
+    activity_date = sleep_date,   # rename for joining consistency
+    id_user = fk_daily_sleep      # rename to match the other dataset
+  ) %>%
+  select(id_user, activity_date, sleep_gap)
+
+# Creating the Id column
+df_sleep_efficiency <- df_sleep_efficiency %>%
+  mutate(id = str_c(id_user, activity_date, sep = "_")) %>%
+  relocate(id, .before = id_user)
+
+str(df_sleep_efficiency)
+
+# 2. Join with daily calories to compare sleep and activity
+df_sleep_calories <- df_sleep_efficiency %>%
+  inner_join(df_daily_calories, by = c("id_user", "activity_date"))
+```
+
+
+
 Aggregating average calories burned by users in df_user_activity
 ```{r}
 df_avg_user_calories <- df_daily_calories %>%
@@ -481,17 +532,51 @@ na_daily_intensities
 str(df_daily_intensities)
 ```
 
+
+```{r}
+str(df_daily_intensities)
+```
+
+
+
 Processing the dataframe data so that it is standardized.
 ```{r}
-df_daily_intensities$Id <- as.character(df_daily_intensities$Id)
-df_daily_intensities <- df_daily_intensities %>% 
+df_daily_intensities <- df_daily_intensities %>%
   clean_names() %>%
   rename(id_user = id) %>%
   rename(intensities_date = activity_day) %>%
-  mutate(id = paste(id_user, intensities_date, sep = "_")) %>%
-  relocate(id, .before = id_user)
+  mutate(
+    intensities_date = mdy(intensities_date),  # converte string para Date
+    id = paste(id_user, intensities_date, sep = "_")  # cria o id padronizado
+  ) %>%
+  relocate(id, .before = id_user)%>%
+  mutate(id_user = as.character(id_user))
+
 str(df_daily_intensities)
 ```
+
+Processing data to canculate the correlation betwen intenditie of some activity and time in bed without sleep. 
+```{r}
+df_intensity_sleep <- df_sleep_efficiency %>%
+  inner_join(df_daily_intensities, by = "id")
+
+df_corr <- df_intensity_sleep %>%
+  select(
+    sleep_gap,
+    lightly_active_minutes,
+    fairly_active_minutes,
+    very_active_minutes
+  )
+
+# Calcular matriz de correlação
+correlation_matrix <- cor(df_corr, use = "complete.obs")
+print(correlation_matrix)
+
+```
+
+
+
+
 
 
 Aggregating average calories burned by users in df_user_activity
@@ -647,23 +732,35 @@ users_by_hour_status$activity_segment <- factor(users_by_hour_status$activity_se
                                                 levels = c("Sedentary", "Active"))
 ```
 
-### Analyze 
+### Analyze & Share
 
-**Distribution of User Activity Levels.**
+#### Distribution of User Activity Levels
 
-To begin the analysis, we can see that we are working with a good sample of the population, since we have users ranging from not at all active to fully active users, and there are also several intermediate users, which favors an unbiased analysis.
+The sample shows great diversity among users: from completely sedentary to highly active. This is positive, as it allows for more balanced and unbiased analyses.
+
+- **Reflection**: The wide variation indicates multiple user profiles, from occasional to fully engaged users.
+
 ```{r}
 ggplot(df_user_activity, aes(x = user_activity_in_period)) +
   geom_histogram(binwidth = 10, fill = "#00BFC4", color = "black", alpha = 0.7) +
-  labs(title = "Distribuição do Nível de Atividade dos Usuários (%)",
-       x = "% de Dias Ativos",
-       y = "Quantidade de Usuários") +
+  labs(
+    title = "Distribution of User Activity Levels (%)",
+    x = "% of Active Days",
+    y = "Number of Users"
+  ) +
   theme_minimal()
 ```
 
 
 
 **Analysis of user activity by day of the week.**
+
+Active Minutes by Type and Day of the Week
+
+Most active minutes recorded are of low intensity (“Lightly Active”) across all days. Few minutes are spent in moderate or vigorous activities.
+
+**Reflection:** Users favor light movement with minimal high-intensity activity.
+
 
 ```{r}
 ggplot(avg_active_minutes_long, aes(x = weekday, y = avg_minutes, fill = activity_type)) +
@@ -677,19 +774,15 @@ ggplot(avg_active_minutes_long, aes(x = weekday, y = avg_minutes, fill = activit
   theme_minimal()
 ```
 
-Insights:
-
-A maioria dos usuários de dispositivos inteligentes é “Lightly Active” em todos os dias da semana.
-
-Poucos minutos são dedicados a atividades moderadas ou intensas.
-
-Estratégias de produto e marketing devem focar em apoiar e estimular a rotina ativa do dia a dia, não só o desempenho esportivo.
-
 
 
 
 
 **Analysis of active users by time of day based on calorie expenditure.**
+
+Users are most active between 9 AM and 7 PM, peaking around 11 AM–2 PM. Outside these hours, sedentary behavior dominates.
+
+**Reflection:** Activity aligns with work or study schedules, indicating integration into daily routines.
 
 ```{r}
 ggplot(users_by_hour_status, aes(x = hour, y = user_count, fill = activity_segment)) +
@@ -705,35 +798,14 @@ ggplot(users_by_hour_status, aes(x = hour, y = user_count, fill = activity_segme
   theme_minimal()
 
 ```
+
+
+**Analysis of correlation between total distance and each active distance type.**
+Daily distance covered is predominantly from light activities. Moderate and vigorous distances are less frequent.
+
+**Reflection:** Total daily distance largely comes from low-intensity activities, showing a preference for light exercise.
+
 ```{r}
-library(tidyverse)
-
-# Calculate the proportion of each active distance type relative to total_distance
-df_dist_composition <- df_daily_activity %>%
-  mutate(
-    prop_light = light_active_distance / total_distance,
-    prop_moderate = moderately_active_distance / total_distance,
-    prop_very_active = very_active_distance / total_distance
-  )
-
-# Calculate correlations between total_distance and each active distance type
-cor(df_daily_activity$total_distance, df_daily_activity$light_active_distance, use = "complete.obs")
-cor(df_daily_activity$total_distance, df_daily_activity$moderately_active_distance, use = "complete.obs")
-cor(df_daily_activity$total_distance, df_daily_activity$very_active_distance, use = "complete.obs")
-
-# Prepare data in long format for plotting daily composition
-df_dist_long <- df_dist_composition %>%
-  select(activity_date, total_distance, light_active_distance, moderately_active_distance, very_active_distance) %>%
-  pivot_longer(
-    cols = c(light_active_distance, moderately_active_distance, very_active_distance),
-    names_to = "distance_type",
-    values_to = "distance"
-  )
-
-
-
-
-
 # Stacked bar plot per day - shows composition of distances by activity type
 ggplot(df_dist_long, aes(x = activity_date, y = distance, fill = distance_type)) +
   geom_bar(stat = "identity") +
@@ -759,13 +831,131 @@ ggplot(df_dist_long, aes(x = activity_date, y = distance, fill = distance_type))
 
 
 ```
+**4. Calculate correlation between calories burned and sleep gap**
+There is a slight negative correlation between calories burned and time spent awake in bed.
+
+**Reflection:** Higher daily energy expenditure appears linked to shorter awake time, suggesting physical activity enhances sleep efficiency.
+```{r}
+# 3. Plot the relationship between calories burned and sleep inefficiency
+ggplot(df_sleep_calories, aes(x = calories, y = sleep_gap)) +
+  geom_point(alpha = 0.6) +  # scatter plot with transparency
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  # linear regression line
+  labs(
+    title = "Daily Calories vs. Time Awake in Bed",
+    x = "Calories Burned",
+    y = "Minutes Awake in Bed"
+  ) +
+  theme_minimal()
+```
 
 
-### Share 
-### Act 
+**Analysis of correlation between activity kind and time to sleep.**
+Activity Intensity vs. Time Awake
+
+**Lightly Active:** Slight negative correlation.
+
+**Fairly Active:** Minor positive correlation.
+
+**Very Active:** Mild negative correlation.
+
+**Reflection:** Light and vigorous activities demonstrate opposite effects on awake time, while moderate shows a less clear relationship.
+```{r}
+# Lightly Active
+ggplot(df_intensity_sleep, aes(x = lightly_active_minutes, y = sleep_gap)) +
+  geom_point(alpha = 0.6, color = "black") +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  labs(
+    title = "Lightly Active vs. Time Awake in Bed",
+    x = "Minutes Lightly Active",
+    y = "Minutes Awake in Bed"
+  ) +
+  theme_minimal()
+
+# Fairly Active
+ggplot(df_intensity_sleep, aes(x = fairly_active_minutes, y = sleep_gap)) +
+  geom_point(alpha = 0.6, color = "black") +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  labs(
+    title = "Fairly Active vs. Time Awake in Bed",
+    x = "Minutes Fairly Active",
+    y = "Minutes Awake in Bed"
+  ) +
+  theme_minimal()
+
+# Very Active
+ggplot(df_intensity_sleep, aes(x = very_active_minutes, y = sleep_gap)) +
+  geom_point(alpha = 0.6, color = "black") +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  labs(
+    title = "Very Active vs. Time Awake in Bed",
+    x = "Minutes Very Active",
+    y = "Minutes Awake in Bed"
+  ) +
+  theme_minimal()
+```
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import textwrap
 
 
-
-## Including Plots
+## Share
+Based on our analysis, we observed the following key insights:
+1. **Midday Activity Peak and Extended Sedentary Periods**
+ Users are most active between 11 AM and 2 PM, but show prolonged sedentary
+behavior in the early morning and late afternoon.
+2. **Dominance of Light Activity**
+ The majority of active minutes come from low-intensity movement, with
+moderate and vigorous activities being much less frequent.
+3. **Light Activity as Main Contributor to Daily Distance**
+ Daily distance covered is largely driven by light walking, indicating a
+preference for gentle movement.
+4. **Calorie Burn Correlates to Sleep Efficiency**
+ Higher daily calorie expenditure is associated with shorter awake time in
+bed, suggesting that more active days lead to smoother transitions to sleep.
+5. **Intensity-Specific Sleep Effects**
+ - Light activity shows a slight negative correlation with time awake in bed.
+ - Moderate activity has a minor positive correlation, potentially disrupting
+sleep if done too late.
+ - Vigorous activity correlates negatively with awake time, indicating it aids
+faster sleep onset.
+---
+## Act
+To translate these insights into strategic initiatives for Bellabeat, we
+recommend the following campaigns and features:
+1. **“Move More” Habit Builder**
+ - Send in-app reminders at 9 AM and 3 PM to break up sedentary stretches.
+ - Leverage the Leaf tracker for quick activity prompts and remind users to
+stand or walk.
+2. **Personalized Mini-Workouts**
+ - Introduce 5–10 minute HIIT and stretching routines timed to each user’s
+active window.
+ - Deliver suggestions through the Time watch notifications for seamless
+integration.
+3. **“Burn & Bed” Sleep Improvement Series**
+ - Publish short videos and in-app modules pairing calorie-burning exercises
+with sleep tips.
+ - Highlight user sleep score improvements using Bellabeat app and Time data.
+4. **Community “Light Moves” Campaign**
+ - Launch a one-week challenge encouraging users to log 20 minutes of walking
+each morning.
+ - Feature participant stories in newsletters and award badges in the app.
+5. **Intensity-Tailored Advice Cards**
+ - Deploy daily tips based on user intensity data:
+ * Light: Post-lunch stroll recommendations.
+ * Moderate: Suggest evening yoga instead of late runs.
+ * Vigorous: Encourage evening workouts with a two-hour buffer before
+bedtime.
+6. **Smart Engagement Metrics**
+ - Track reminder interactions, workout completion rates, challenge
+participation, and sleep-gap changes.
+ - Use these metrics to iterate campaigns and refine messaging tone.
+ 
+**Conclusion**
+By implementing app features that continuously address users’ most deficient
+areas—enhancing daily movement, personalized workouts, better sleep routines,
+and targeted tips—Bellabeat elevates its product exclusivity. These additions
+not only improve quality of life but also position Bellabeat as a proactive
+partner in each user’s wellness journey.
 
 

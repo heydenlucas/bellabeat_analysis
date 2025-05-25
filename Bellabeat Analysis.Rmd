@@ -1,7 +1,7 @@
 ---
 title: "Capstone Project: Google Data Analytics Professional Certificate"
 author: "Lucas Heyden"
-date: "2025-03-30"
+date: "2025-05-24"
 output: html_document
 ---
 
@@ -85,21 +85,8 @@ The dataset consists of 18 CSV files, with 15 in long format and 3 in wide forma
 | dailyActivity_merged                 | CSV  | Long   | 30   | 33    | Daily activity: steps, distance, intensity, calories |
 | dailyCalories_merged                 | CSV  | Long   | 30   | 33    | Daily calorie burn |
 | dailyIntensities_merged              | CSV  | Long   | 30   | 33    | Daily intensity levels (minutes and distances) |
-| dailySteps_merged                    | CSV  | Long   | 30   | 33    | Total daily step count |
-| heartrate_seconds_merged             | CSV  | Long   | 30   | 14    | Heart rate recorded every 5 seconds |
 | hourlyCalories_merged                 | CSV  | Long   | 30   | 33    | Hourly calorie burn |
-| hourlyIntensities_merged              | CSV  | Long   | 30   | 33    | Hourly intensity levels and averages |
-| hourlySteps_merged                    | CSV  | Long   | 30   | 33    | Steps recorded per hour |
-| minuteCaloriesNarrow_merged           | CSV  | Long   | 30   | 33    | Calorie burn per minute (one row per minute) |
-| minuteCaloriesWide_merged             | CSV  | Wide   | 30   | 33    | Calorie burn per minute (one column per minute) |
-| minuteIntensitiesNarrow_merged        | CSV  | Long   | 30   | 33    | Intensity per minute (one row per minute) |
-| minuteIntensitiesWide_merged          | CSV  | Wide   | 30   | 33    | Intensity per minute (one column per minute) |
-| minuteMETsNarrow_merged               | CSV  | Long   | 30   | 33    | Metabolic equivalent (MET) per minute |
-| minuteSleep_merged                     | CSV  | Long   | 31   | 24    | Minute-by-minute sleep records |
-| minuteStepsNarrow_merged              | CSV  | Long   | 30   | 33    | Step count per minute (one row per minute) |
-| minuteStepsWide_merged                | CSV  | Wide   | 30   | 33    | Step count per minute (one column per minute) |
 | sleepDay_merged                        | CSV  | Long   | 30   | 24    | Sleep records: total sleep time and time in bed |
-| weightLogInfo_merged                   | CSV  | Long   | 30   | 8     | Weight, body fat percentage, BMI, report type |
 
 
 #### Credibility  
@@ -155,22 +142,9 @@ library(factoextra)
 df_daily_activity <- read_csv("/cloud/project/raw_data_bellabeat/dailyActivity_merged.csv")
 df_daily_calories <- read_csv("/cloud/project/raw_data_bellabeat/dailyCalories_merged.csv")
 df_daily_intensities <- read_csv("/cloud/project/raw_data_bellabeat/dailyIntensities_merged.csv")
-df_daily_steps <- read_csv("/cloud/project/raw_data_bellabeat/dailySteps_merged.csv")
 df_daily_sleep <- read_csv("/cloud/project/raw_data_bellabeat/sleepDay_merged.csv")
 df_hourly_calories <- read_csv("/cloud/project/raw_data_bellabeat/hourlyCalories_merged.csv")
-
-
-
-
-
 ```
-
-df_daily_activity - OK
-df_daily_calories - 
-df_daily_intensities <- read_csv("/cloud/project/raw_data_bellabeat/dailyIntensities_merged.csv")
-df_daily_steps <- read_csv("/cloud/project/raw_data_bellabeat/dailySteps_merged.csv")
-df_daily_sleep <- read_csv("/cloud/project/raw_data_bellabeat/sleepDay_merged.csv")
-df_hourly_calories - OK
 
 
 #### Exploratory analisys
@@ -182,8 +156,6 @@ str(df_daily_sleep)
 str(df_daily_intensities)
 
 str(df_daily_calories)
-
-str(df_daily_steps)
 
 str(df_hourly_calories)
 ```
@@ -217,7 +189,7 @@ dp_daily_activity
 na_daily_activity
 ```
 
-Since there are no duplicate rows in the dataset, there is no need to remove any. So, next, the 'Id' column will be renamed to fk_daily_activity so that it can be used as a foreign key if needed, and a new Id column will be generated which is the concatenation of fk_daily_activity and activity_date
+Since there are no duplicate rows in the dataset, there is no need to remove any. So, next, the 'Id' column will be renamed to fk_daily_activity so that it can be used as a foreign key if needed, and a new Id column will be generated which is the concatenation of fk_daily_activity and activity_date. Considering that all data sets have the characteristic of the Id not being unique in the dataframe, a new Id will always be generated through the concatenation of columns.
 
 ```{r}
 df_daily_activity <- df_daily_activity %>%
@@ -612,59 +584,6 @@ df_user_activity <- df_user_activity %>%
 str(df_user_activity)
 ```
 
-***
-**Daily Steps**
-
-Validation of non-unique and null values.
-```{r}
-dp_daily_steps <- sum(duplicated(df_daily_steps)) * 100 / nrow(df_daily_steps)
-na_daily_steps <- sum(is.na(df_daily_steps)) * 100 / nrow(df_daily_steps)
-
-dp_daily_steps
-na_daily_steps
-
-str(df_daily_steps)
-```
-
-Processing the dataframe data so that it is standardized.
-```{r}
-df_daily_steps$Id <- as.character(df_daily_steps$Id)
-df_daily_steps <- df_daily_steps %>% 
-  clean_names() %>%
-  rename(id_user = id) %>%
-  rename(steps_date = activity_day) %>%
-  mutate(id = paste(id_user, steps_date, sep = "_")) %>%
-  relocate(id, .before = id_user)
-
-str(df_daily_steps)
-```
-
-
-Aggregating average calories burned by users in df_user_activity
-```{r}
-df_avg_steps <- df_daily_steps %>%
-  group_by(id_user) %>%
-  summarise(avg_steps = mean(step_total, na.rm = TRUE))
-
-df_user_activity <- df_user_activity %>%
-  left_join(df_avg_steps, by = "id_user") %>%
-  select(
-    id_user,
-    user_activity_in_period,
-    avg_minutes_asleep,
-    avg_calories,
-    avg_lightly_active_minutes,
-    avg_fairly_active_minutes,
-    avg_very_active_minutes,
-    avg_sedentary_active_distance,
-    avg_light_active_distance,
-    avg_moderately_active_distance,
-    avg_very_active_distance,
-    avg_steps
-  )
-
-str(df_user_activity)
-```
 
 ***
 **Hourly Calories**
@@ -894,68 +813,61 @@ ggplot(df_intensity_sleep, aes(x = very_active_minutes, y = sleep_gap)) +
   theme_minimal()
 ```
 
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-import textwrap
-
-
 ## Share
+
 Based on our analysis, we observed the following key insights:
-1. **Midday Activity Peak and Extended Sedentary Periods**
- Users are most active between 11 AM and 2 PM, but show prolonged sedentary
-behavior in the early morning and late afternoon.
-2. **Dominance of Light Activity**
- The majority of active minutes come from low-intensity movement, with
-moderate and vigorous activities being much less frequent.
-3. **Light Activity as Main Contributor to Daily Distance**
- Daily distance covered is largely driven by light walking, indicating a
-preference for gentle movement.
-4. **Calorie Burn Correlates to Sleep Efficiency**
- Higher daily calorie expenditure is associated with shorter awake time in
-bed, suggesting that more active days lead to smoother transitions to sleep.
-5. **Intensity-Specific Sleep Effects**
- - Light activity shows a slight negative correlation with time awake in bed.
- - Moderate activity has a minor positive correlation, potentially disrupting
-sleep if done too late.
- - Vigorous activity correlates negatively with awake time, indicating it aids
-faster sleep onset.
+
+1. **Midday Activity Peak and Extended Sedentary Periods**  
+   Users are most active between 11 AM and 2 PM, but show prolonged sedentary behavior in the early morning and late afternoon.
+
+2. **Dominance of Light Activity**  
+   The majority of active minutes come from low-intensity movement, with moderate and vigorous activities being much less frequent.
+
+3. **Light Activity as Main Contributor to Daily Distance**  
+   Daily distance covered is largely driven by light walking, indicating a preference for gentle movement.
+
+4. **Calorie Burn Correlates to Sleep Efficiency**  
+   Higher daily calorie expenditure is associated with shorter awake time in bed, suggesting that more active days lead to smoother transitions to sleep.
+
+5. **Intensity-Specific Sleep Effects**  
+   - Light activity shows a slight negative correlation with time awake in bed.  
+   - Moderate activity has a minor positive correlation, potentially disrupting sleep if done too late.  
+   - Vigorous activity correlates negatively with awake time, indicating it aids faster sleep onset.
+
 ---
+
 ## Act
-To translate these insights into strategic initiatives for Bellabeat, we
-recommend the following campaigns and features:
-1. **“Move More” Habit Builder**
- - Send in-app reminders at 9 AM and 3 PM to break up sedentary stretches.
- - Leverage the Leaf tracker for quick activity prompts and remind users to
-stand or walk.
-2. **Personalized Mini-Workouts**
- - Introduce 5–10 minute HIIT and stretching routines timed to each user’s
-active window.
- - Deliver suggestions through the Time watch notifications for seamless
-integration.
-3. **“Burn & Bed” Sleep Improvement Series**
- - Publish short videos and in-app modules pairing calorie-burning exercises
-with sleep tips.
- - Highlight user sleep score improvements using Bellabeat app and Time data.
-4. **Community “Light Moves” Campaign**
- - Launch a one-week challenge encouraging users to log 20 minutes of walking
-each morning.
- - Feature participant stories in newsletters and award badges in the app.
-5. **Intensity-Tailored Advice Cards**
- - Deploy daily tips based on user intensity data:
- * Light: Post-lunch stroll recommendations.
- * Moderate: Suggest evening yoga instead of late runs.
- * Vigorous: Encourage evening workouts with a two-hour buffer before
-bedtime.
-6. **Smart Engagement Metrics**
- - Track reminder interactions, workout completion rates, challenge
-participation, and sleep-gap changes.
- - Use these metrics to iterate campaigns and refine messaging tone.
- 
-**Conclusion**
-By implementing app features that continuously address users’ most deficient
-areas—enhancing daily movement, personalized workouts, better sleep routines,
-and targeted tips—Bellabeat elevates its product exclusivity. These additions
-not only improve quality of life but also position Bellabeat as a proactive
-partner in each user’s wellness journey.
 
+To translate these insights into strategic initiatives for Bellabeat, we recommend the following campaigns and features:
 
+1. **“Move More” Habit Builder**  
+   - Send in-app reminders at 9 AM and 3 PM to break up sedentary stretches.  
+   - Leverage the Leaf tracker for quick activity prompts and remind users to stand or walk.
+
+2. **Personalized Mini-Workouts**  
+   - Introduce 5–10 minute HIIT and stretching routines timed to each user’s active window.  
+   - Deliver suggestions through the Time watch notifications for seamless integration.
+
+3. **“Burn & Bed” Sleep Improvement Series**  
+   - Publish short videos and in-app modules pairing calorie-burning exercises with sleep tips.  
+   - Highlight user sleep score improvements using Bellabeat app and Time data.
+
+4. **Community “Light Moves” Campaign**  
+   - Launch a one-week challenge encouraging users to log 20 minutes of walking each morning.  
+   - Feature participant stories in newsletters and award badges in the app.
+
+5. **Intensity-Tailored Advice Cards**  
+   - Deploy daily tips based on user intensity data:  
+     * **Light:** Post-lunch stroll recommendations.  
+     * **Moderate:** Suggest evening yoga instead of late runs.  
+     * **Vigorous:** Encourage evening workouts with a two-hour buffer before bedtime.
+
+6. **Smart Engagement Metrics**  
+   - Track reminder interactions, workout completion rates, challenge participation, and sleep-gap changes.  
+   - Use these metrics to iterate campaigns and refine messaging tone.
+
+---
+
+## Conclusion
+
+By implementing app features that continuously address users’ most deficient areas—enhancing daily movement, personalized workouts, better sleep routines, and targeted tips—Bellabeat elevates its product exclusivity. These additions not only improve quality of life but also position Bellabeat as a proactive partner in each user’s wellness journey.

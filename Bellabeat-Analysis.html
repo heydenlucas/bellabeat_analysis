@@ -470,9 +470,10 @@ Kaggle through Mobius, enables analysis of user habits.</p>
 </div>
 <div id="organization" class="section level4">
 <h4>Organization</h4>
-<p>The dataset consists of 18 CSV files, with 15 in long format and 3 in
-wide format. Each user has a unique ID, and records are organized by day
-and hour. The files were processed in RStudio Cloud.</p>
+<p>The dataset consists of 18 CSV files, 15 in long format and 3 in wide
+format. Each user has a unique ID and the records are organized by day
+and time. Five files were chosen for analysis and processed in RStudio
+Cloud.</p>
 <table>
 <colgroup>
 <col width="33%" />
@@ -538,9 +539,9 @@ and hour. The files were processed in RStudio Cloud.</p>
 </div>
 <div id="credibility" class="section level4">
 <h4>Credibility</h4>
-<p>An evaluation using the <strong>ROCCC</strong> method reveals:<br />
-- <strong>Reliability:</strong> Low, due to a small sample size and
-short collection period.<br />
+<p>An evaluation using the <strong>ROCCC</strong> method reveals: -
+<strong>Reliability:</strong> Low, due to a small sample size and short
+collection period.<br />
 - <strong>Originality:</strong> Collected by third parties (MTurk)
 rather than directly by Fitbit.<br />
 - <strong>Comprehensiveness:</strong> Limited, as demographic details
@@ -580,11 +581,11 @@ and the data cleaning process. The following points will be
 addressed:</p>
 <ul>
 <li>The tools selected for data cleaning and the rationale behind those
-choices.</li>
-<li>Methods employed to ensure the integrity of the data.</li>
-<li>Steps taken to maintain a clean dataset.</li>
+choices;</li>
+<li>Methods employed to ensure the integrity of the data;</li>
+<li>Steps taken to maintain a clean dataset;</li>
 <li>Verification processes to confirm that the data is ready for
-analysis.</li>
+analysis;</li>
 <li>Documentation of the cleaning process for future reference and
 sharing.</li>
 </ul>
@@ -792,17 +793,6 @@ library(factoextra)</code></pre>
 </div>
 <div id="data-preparation" class="section level4">
 <h4>Data preparation</h4>
-<p>Initially, the make_id function will be instantiated, which
-standardizes the creation of a unique “id” column, since the original Id
-column is not.</p>
-<pre class="r"><code>make_id &lt;- function(df, user_col, date_col) {
-  df %&gt;%
-    mutate(
-      !!sym(user_col) := as.character(.data[[user_col]]),
-      !!sym(date_col) := lubridate::mdy(.data[[date_col]]),
-      id = paste(.data[[user_col]], .data[[date_col]], sep = &quot;_&quot;)
-    )
-}</code></pre>
 <hr />
 <p><strong>Daily Activity</strong></p>
 <pre class="r"><code>df_daily_activity$ActivityDate &lt;- as.Date(df_daily_activity$ActivityDate, format = &quot;%m/%d/%Y&quot;)
@@ -1396,7 +1386,13 @@ head(df_hourly_calories,100)</code></pre>
 ## 10 1503960366_2016-04-…  1.50e9       84 2016-04-21 23:00:00    23 21/04/2016   
 ## # ℹ 90 more rows</code></pre>
 <p>Performing processing to plot the graph of active users by time of
-day based on calorie expenditure.</p>
+day based on calorie expenditure. It was considered that an active user
+is one who spent 200 calories in that hour, given that, according to the
+article “Understanding METs: A Simple Way to Measure Exercise Intensity”
+from ACE Fitness, this would correspond to a light activity practiced
+for 1 hour by a person weighing 67kg. We consider these to be reasonable
+parameters, as according to the Size USA study, this is the average
+weight of American women.</p>
 <pre class="r"><code># Create a column with date only (remove time)
 df_hourly_calories &lt;- df_hourly_calories %&gt;%
   mutate(activity_date = as.Date(activity_datetime))
@@ -1676,6 +1672,13 @@ sleep routines, and targeted tips—Bellabeat elevates its product
 exclusivity. These additions not only improve quality of life but also
 position Bellabeat as a proactive partner in each user’s wellness
 journey.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>ACE Fitness. Understanding METs: A Simple Way to Measure Exercise
+Intensity. Available at: <a href="https://www.acefitness.org/fitness-articles/4370/understanding-mets-a-simple-way-to-measure-exercise-intensity/" class="uri">https://www.acefitness.org/fitness-articles/4370/understanding-mets-a-simple-way-to-measure-exercise-intensity/</a></p>
+<p>TC² (Textile/Clothing Technology Corporation). Size USA Study.
+Available at: <a href="https://www.tc2.com/size-usa.html" class="uri">https://www.tc2.com/size-usa.html</a></p>
 </div>
 
 

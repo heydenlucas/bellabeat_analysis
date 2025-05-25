@@ -77,7 +77,7 @@ These questions are fundamental to understanding consumer behavior and how Bella
 This dataset was collected via Amazon Mechanical Turk between March and May 2016. It contains data from 30 Fitbit users who consented to sharing their personal fitness tracker information, including physical activity, heart rate, and sleep. The dataset, publicly available on Kaggle through Mobius, enables analysis of user habits.  
 
 #### Organization  
-The dataset consists of 18 CSV files, with 15 in long format and 3 in wide format. Each user has a unique ID, and records are organized by day and hour. The files were processed in RStudio Cloud.  
+The dataset consists of 18 CSV files, 15 in long format and 3 in wide format. Each user has a unique ID and the records are organized by day and time. Five files were chosen for analysis and processed in RStudio Cloud.
 
 
 | File Name                           | Type | Format | Days | Users | Description |
@@ -621,7 +621,7 @@ df_hourly_calories <- df_hourly_calories %>%
 head(df_hourly_calories,100)
 ```
 
-Performing processing to plot the graph of active users by time of day based on calorie expenditure.
+Performing processing to plot the graph of active users by time of day based on calorie expenditure. It was considered that an active user is one who spent 200 calories in that hour, given that, according to the article "Understanding METs: A Simple Way to Measure Exercise Intensity" from ACE Fitness, this would correspond to a light activity practiced for 1 hour by a person weighing 67kg. We consider these to be reasonable parameters, as according to the Size USA study, this is the average weight of American women.
 
 ```{r}
 # Create a column with date only (remove time)
@@ -871,3 +871,8 @@ To translate these insights into strategic initiatives for Bellabeat, we recomme
 ## Conclusion
 
 By implementing app features that continuously address users’ most deficient areas—enhancing daily movement, personalized workouts, better sleep routines, and targeted tips—Bellabeat elevates its product exclusivity. These additions not only improve quality of life but also position Bellabeat as a proactive partner in each user’s wellness journey.
+
+## References
+ACE Fitness. Understanding METs: A Simple Way to Measure Exercise Intensity. Available at: https://www.acefitness.org/fitness-articles/4370/understanding-mets-a-simple-way-to-measure-exercise-intensity/
+
+TC² (Textile/Clothing Technology Corporation). Size USA Study. Available at: https://www.tc2.com/size-usa.html

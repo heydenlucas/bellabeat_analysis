@@ -90,7 +90,7 @@ The dataset consists of 18 CSV files, with 15 in long format and 3 in wide forma
 
 
 #### Credibility  
-An evaluation using the **ROCCC** method reveals:  
+An evaluation using the **ROCCC** method reveals: 
 - **Reliability:** Low, due to a small sample size and short collection period.  
 - **Originality:** Collected by third parties (MTurk) rather than directly by Fitbit.  
 - **Comprehensiveness:** Limited, as demographic details are missing.  
@@ -111,10 +111,10 @@ Variations in unique IDs, differences between automated and manually entered dat
 ### Process 
 Data integrity and the cleaning process are essential in data analysis, ensuring that data is accurate, consistent, and reliable. Data cleaning involves identifying and correcting errors or inconsistencies, which enhances the quality of insights derived from the data. In this discussion, we will explore several critical aspects of data integrity and the data cleaning process. The following points will be addressed:
 
-- The tools selected for data cleaning and the rationale behind those choices.
-- Methods employed to ensure the integrity of the data.
-- Steps taken to maintain a clean dataset.
-- Verification processes to confirm that the data is ready for analysis.
+- The tools selected for data cleaning and the rationale behind those choices;
+- Methods employed to ensure the integrity of the data;
+- Steps taken to maintain a clean dataset;
+- Verification processes to confirm that the data is ready for analysis;
 - Documentation of the cleaning process for future reference and sharing.
 
 These elements are vital for ensuring that the data used in analysis is of high quality, ultimately leading to more accurate and actionable insights.
